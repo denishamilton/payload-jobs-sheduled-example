@@ -1,9 +1,8 @@
-// payload.config.ts
-
 import { TaskConfig } from 'payload'
 
 export const publishNewsTask: TaskConfig<'publishNews'> = {
   slug: 'publishNews',
+  retries: 2,
   inputSchema: [
     {
       name: 'newsID',
@@ -14,17 +13,24 @@ export const publishNewsTask: TaskConfig<'publishNews'> = {
   handler: async ({ input, req }) => {
     const { newsID } = input
 
-    // Обновляем новость
-    await req.payload.update({
-      collection: 'news',
-      id: newsID,
-      data: {
-        status: 'published',
-      },
-    })
+    try {
+      await req.payload.update({
+        collection: 'news',
+        id: newsID,
+        data: {
+          status: 'published',
+        },
+      })
 
-    return {
-      output: {},
+      req.payload.logger.info(`News (ID: ${newsID}) was successfully published via scheduled task.`)
+
+      return {
+        output: {},
+      }
+    } catch (error) {
+      req.payload.logger.error(`Failed to publish News (ID: ${newsID}): ${error}`)
+
+      throw error
     }
   },
 }

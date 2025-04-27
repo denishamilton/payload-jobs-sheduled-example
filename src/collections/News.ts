@@ -5,9 +5,6 @@ export const News: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
   },
-  access: {
-    read: () => true,
-  },
   fields: [
     {
       name: 'title',
@@ -16,7 +13,7 @@ export const News: CollectionConfig = {
     },
     {
       name: 'content',
-      type: 'richText',
+      type: 'text',
       required: true,
     },
     {
@@ -32,7 +29,7 @@ export const News: CollectionConfig = {
           value: 'published',
         },
       ],
-      defaultValue: 'draft',
+      defaultValue: 'published',
       required: true,
     },
     {
@@ -41,24 +38,32 @@ export const News: CollectionConfig = {
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
-          timeFormat: 'HH:mm',
           timeIntervals: 1,
-          displayFormat: 'yyyy-MM-dd HH:mm',
         },
       },
     },
   ],
   hooks: {
     afterChange: [
-      async ({ doc, operation, req }) => {
+      async ({ doc, req }) => {
         if (doc.scheduledPublish && doc.status === 'draft') {
-          await req.payload.jobs.queue({
-            task: 'publishNews',
-            input: {
-              newsID: doc.id,
-            },
-            waitUntil: new Date(doc.scheduledPublish),
-          })
+          try {
+            await req.payload.jobs.queue({
+              task: 'publishNews',
+              input: {
+                newsID: doc.id,
+              },
+              waitUntil: new Date(doc.scheduledPublish),
+            })
+
+            req.payload.logger.info(
+              `Scheduled publication for News (ID: ${doc.id}) at ${doc.scheduledPublish}`,
+            )
+          } catch (error) {
+            req.payload.logger.error(
+              `Failed to schedule publication for News (ID: ${doc.id}): ${error}`,
+            )
+          }
         }
       },
     ],
