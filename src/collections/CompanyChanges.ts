@@ -1,7 +1,18 @@
 import { CollectionConfig } from 'payload'
+import { CompanyChange } from '../payload-types' // либо переименуйте тип
+import { CollectionAfterChangeHook } from 'payload'
 
-export const News: CollectionConfig = {
-  slug: 'news',
+const sendMailAfterChange: CollectionAfterChangeHook<CompanyChange> = async ({
+  doc,
+  req,
+  operation,
+  previousDoc,
+}) => {
+  console.log(`Email sent after ${operation} operation on CompanyChanges (ID: ${doc.id})`)
+}
+
+export const CompanyChanges: CollectionConfig = {
+  slug: 'company-changes',
   admin: {
     useAsTitle: 'title',
   },
@@ -49,19 +60,19 @@ export const News: CollectionConfig = {
         if (doc.scheduledPublish && doc.status === 'draft') {
           try {
             await req.payload.jobs.queue({
-              task: 'publishNews',
+              task: 'publishCompanyChange',
               input: {
-                newsID: doc.id,
+                changeID: doc.id,
               },
               waitUntil: new Date(doc.scheduledPublish),
             })
 
             req.payload.logger.info(
-              `Scheduled publication for News (ID: ${doc.id}) at ${doc.scheduledPublish}`,
+              `Scheduled publication for CompanyChange (ID: ${doc.id}) at ${doc.scheduledPublish}`,
             )
           } catch (error) {
             req.payload.logger.error(
-              `Failed to schedule publication for News (ID: ${doc.id}): ${error}`,
+              `Failed to schedule publication for CompanyChange (ID: ${doc.id}): ${error}`,
             )
           }
         }

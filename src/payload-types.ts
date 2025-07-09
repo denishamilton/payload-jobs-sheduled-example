@@ -69,7 +69,7 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
-    news: News;
+    'company-changes': CompanyChange;
     'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -79,7 +79,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    news: NewsSelect<false> | NewsSelect<true>;
+    'company-changes': CompanyChangesSelect<false> | CompanyChangesSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -96,7 +96,7 @@ export interface Config {
   };
   jobs: {
     tasks: {
-      publishNews: TaskPublishNews;
+      publishCompanyChange: TaskPublishCompanyChange;
       inline: {
         input: unknown;
         output: unknown;
@@ -138,6 +138,13 @@ export interface User {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
@@ -161,9 +168,9 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "news".
+ * via the `definition` "company-changes".
  */
-export interface News {
+export interface CompanyChange {
   id: number;
   title: string;
   content: string;
@@ -224,7 +231,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'publishNews';
+        taskSlug: 'inline' | 'publishCompanyChange';
         taskID: string;
         input?:
           | {
@@ -257,7 +264,7 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'publishNews') | null;
+  taskSlug?: ('inline' | 'publishCompanyChange') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -280,8 +287,8 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'news';
-        value: number | News;
+        relationTo: 'company-changes';
+        value: number | CompanyChange;
       } | null)
     | ({
         relationTo: 'payload-jobs';
@@ -343,6 +350,13 @@ export interface UsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -364,9 +378,9 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "news_select".
+ * via the `definition` "company-changes_select".
  */
-export interface NewsSelect<T extends boolean = true> {
+export interface CompanyChangesSelect<T extends boolean = true> {
   title?: T;
   content?: T;
   status?: T;
@@ -439,11 +453,11 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskPublishNews".
+ * via the `definition` "TaskPublishCompanyChange".
  */
-export interface TaskPublishNews {
+export interface TaskPublishCompanyChange {
   input: {
-    newsID: string;
+    changeID: string;
   };
   output?: unknown;
 }
