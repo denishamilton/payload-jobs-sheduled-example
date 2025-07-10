@@ -12,6 +12,9 @@ import { postgresAdapter } from '@payloadcms/db-postgres'
 import { publishCompanyChangeTask } from './tasks/publishCompanyChangeTask'
 import { CompanyChanges } from './collections/CompanyChanges'
 
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import nodemailer from 'nodemailer'
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -48,8 +51,25 @@ export default buildConfig({
       {
         cron: '*/1 * * * *',
         limit: 50,
-        queue: 'default',
+        queue: 'companyChangePublishing',
       },
     ],
   },
+
+  email:
+    process.env.SMTP_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS
+      ? nodemailerAdapter({
+          defaultFromAddress: '<blackboard@bela.de>',
+          defaultFromName: 'Blackboard',
+          transport: nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: 465,
+            secure: true,
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASS,
+            },
+          }),
+        })
+      : undefined,
 })

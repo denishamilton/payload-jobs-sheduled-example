@@ -8,7 +8,35 @@ const sendMailAfterChange: CollectionAfterChangeHook<CompanyChange> = async ({
   operation,
   previousDoc,
 }) => {
-  console.log(`Email sent after ${operation} operation on CompanyChanges (ID: ${doc.id})`)
+  if (operation === 'create' && doc._status === 'published') {
+    req.payload.logger.info('New CompanyChange published:', doc.id)
+
+    try {
+      req.payload.email.sendEmail({
+        to: 'denys.gorozhanin@bela.de',
+        subject: `New CompanyChange (${doc.id}) published`,
+        text: `A new CompanyChange has been published with the title: ${doc.title}\n\nContent:\n${doc.content}`,
+      })
+      req.payload.logger.info('Email sent successfully.')
+    } catch (error) {
+      req.payload.logger.error('Failed to send email:', error)
+    }
+  }
+
+  if (operation === 'update' && doc._status === 'published' && previousDoc?._status === 'draft') {
+    req.payload.logger.info('CompanyChange updated and published:', doc.id)
+
+    try {
+      req.payload.email.sendEmail({
+        to: 'denys.gorozhanin@bela.de',
+        subject: `CompanyChange (${doc.id}) updated and published`,
+        text: `The CompanyChange has been updated with the title: ${doc.title}\n\nContent:\n${doc.content}`,
+      })
+      req.payload.logger.info('Email sent successfully.')
+    } catch (error) {
+      req.payload.logger.error('Failed to send email:', error)
+    }
+  }
 }
 
 export const CompanyChanges: CollectionConfig = {
@@ -28,7 +56,7 @@ export const CompanyChanges: CollectionConfig = {
       required: true,
     },
     {
-      name: 'status',
+      name: '_status',
       type: 'select',
       options: [
         {
@@ -53,30 +81,72 @@ export const CompanyChanges: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'scheduledPublish',
+      type: 'date',
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+          timeIntervals: 1,
+        },
+      },
+    },
   ],
   hooks: {
     afterChange: [
-      async ({ doc, req }) => {
-        if (doc.scheduledPublish && doc.status === 'draft') {
+      async ({ doc, req, previousDoc }) => {
+        if (doc.scheduledPublish && doc._status === 'draft') {
           try {
-            await req.payload.jobs.queue({
-              task: 'publishCompanyChange',
-              input: {
-                changeID: doc.id,
+            // Ищем существующую задачу для этого companyChangeID, которая ещё не завершена
+            const existingJobs = await req.payload.find({
+              collection: 'payload-jobs',
+              where: {
+                'input.companyChangeID': { equals: doc.id },
+                completedAt: { equals: null },
+                hasError: { equals: false },
               },
-              waitUntil: new Date(doc.scheduledPublish),
+              limit: 1,
             })
 
-            req.payload.logger.info(
-              `Scheduled publication for CompanyChange (ID: ${doc.id}) at ${doc.scheduledPublish}`,
-            )
+            const existingJob = existingJobs.docs[0]
+
+            if (existingJob) {
+              // Обновляем дату выполнения (waitUntil)
+              await req.payload.update({
+                collection: 'payload-jobs',
+                id: existingJob.id,
+                data: {
+                  waitUntil: new Date(doc.scheduledPublish).toISOString(),
+                },
+              })
+
+              req.payload.logger.info(
+                `Updated existing scheduled publication for CompanyChange (ID: ${doc.id}) to new date: ${doc.scheduledPublish}`,
+              )
+            } else {
+              // Задачи нет — создаём новую
+              await req.payload.jobs.queue({
+                task: 'publishCompanyChange',
+                queue: 'companyChangePublishing',
+                input: {
+                  companyChangeID: doc.id,
+                },
+                waitUntil: new Date(doc.scheduledPublish),
+              })
+
+              req.payload.logger.info(
+                `Scheduled new publication for CompanyChange (ID: ${doc.id}) at ${doc.scheduledPublish}`,
+              )
+            }
           } catch (error) {
             req.payload.logger.error(
-              `Failed to schedule publication for CompanyChange (ID: ${doc.id}): ${error}`,
+              `Failed to schedule/update publication for CompanyChange (ID: ${doc.id}): ${error}`,
             )
           }
         }
       },
+
+      sendMailAfterChange,
     ],
   },
 }

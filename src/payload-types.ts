@@ -174,7 +174,7 @@ export interface CompanyChange {
   id: number;
   title: string;
   content: string;
-  status: 'draft' | 'published';
+  _status: 'draft' | 'published';
   scheduledPublish?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -383,7 +383,7 @@ export interface MediaSelect<T extends boolean = true> {
 export interface CompanyChangesSelect<T extends boolean = true> {
   title?: T;
   content?: T;
-  status?: T;
+  _status?: T;
   scheduledPublish?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -457,7 +457,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface TaskPublishCompanyChange {
   input: {
-    changeID: string;
+    companyChangeID: string;
   };
   output?: unknown;
 }
