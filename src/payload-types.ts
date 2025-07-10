@@ -175,7 +175,13 @@ export interface CompanyChange {
   title: string;
   content: string;
   _status: 'draft' | 'published';
-  scheduledPublish?: string | null;
+  /**
+   * Optional - Wenn Sie ein Veröffentlichungsdatum und/oder ein Ablaufdatum festlegen, wird dieser Beitrag automatisch veröffentlicht und/oder ausgeblendet.
+   */
+  displayDuration?: {
+    scheduledPublicationDateTime?: string | null;
+    scheduledExpirationDateTime?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -384,7 +390,12 @@ export interface CompanyChangesSelect<T extends boolean = true> {
   title?: T;
   content?: T;
   _status?: T;
-  scheduledPublish?: T;
+  displayDuration?:
+    | T
+    | {
+        scheduledPublicationDateTime?: T;
+        scheduledExpirationDateTime?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

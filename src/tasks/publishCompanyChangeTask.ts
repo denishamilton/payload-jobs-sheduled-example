@@ -19,7 +19,9 @@ export const publishCompanyChangeTask: TaskConfig<'publishCompanyChange'> = {
         id: companyChangeID,
         data: {
           _status: 'published',
-          scheduledPublish: null,
+          displayDuration: {
+            scheduledPublicationDateTime: null,
+          },
         },
       })
 

@@ -1,6 +1,8 @@
 import { CollectionConfig } from 'payload'
 import { CompanyChange } from '../payload-types' // либо переименуйте тип
 import { CollectionAfterChangeHook } from 'payload'
+import { DisplayDurationGroup } from '@/fields/displayDurationGroup'
+import { PublishStatus } from '@/fields/publishStatus'
 
 const sendMailAfterChange: CollectionAfterChangeHook<CompanyChange> = async ({
   doc,
@@ -55,47 +57,26 @@ export const CompanyChanges: CollectionConfig = {
       type: 'text',
       required: true,
     },
-    {
-      name: '_status',
-      type: 'select',
-      options: [
-        {
-          label: 'Draft',
-          value: 'draft',
-        },
-        {
-          label: 'Published',
-          value: 'published',
-        },
-      ],
-      defaultValue: 'published',
-      required: true,
-    },
-    {
-      name: 'scheduledPublish',
-      type: 'date',
-      admin: {
-        date: {
-          pickerAppearance: 'dayAndTime',
-          timeIntervals: 1,
-        },
-      },
-    },
-    {
-      name: 'scheduledPublish',
-      type: 'date',
-      admin: {
-        date: {
-          pickerAppearance: 'dayAndTime',
-          timeIntervals: 1,
-        },
-      },
-    },
+
+    PublishStatus,
+
+    // {
+    //   name: 'scheduledPublish',
+    //   type: 'date',
+    //   admin: {
+    //     date: {
+    //       pickerAppearance: 'dayAndTime',
+    //       timeIntervals: 1,
+    //     },
+    //   },
+    // },
+
+    DisplayDurationGroup,
   ],
   hooks: {
     afterChange: [
       async ({ doc, req, previousDoc }) => {
-        if (doc.scheduledPublish && doc._status === 'draft') {
+        if (doc.displayDuration.scheduledPublicationDateTime && doc._status === 'draft') {
           try {
             // Ищем существующую задачу для этого companyChangeID, которая ещё не завершена
             const existingJobs = await req.payload.find({
@@ -116,12 +97,14 @@ export const CompanyChanges: CollectionConfig = {
                 collection: 'payload-jobs',
                 id: existingJob.id,
                 data: {
-                  waitUntil: new Date(doc.scheduledPublish).toISOString(),
+                  waitUntil: new Date(
+                    doc.displayDuration.scheduledPublicationDateTime,
+                  ).toISOString(),
                 },
               })
 
               req.payload.logger.info(
-                `Updated existing scheduled publication for CompanyChange (ID: ${doc.id}) to new date: ${doc.scheduledPublish}`,
+                `Updated existing scheduled publication for CompanyChange (ID: ${doc.id}) to new date: ${doc.displayDuration.scheduledPublicationDateTime}`,
               )
             } else {
               // Задачи нет — создаём новую
@@ -131,11 +114,11 @@ export const CompanyChanges: CollectionConfig = {
                 input: {
                   companyChangeID: doc.id,
                 },
-                waitUntil: new Date(doc.scheduledPublish),
+                waitUntil: new Date(doc.displayDuration.scheduledPublicationDateTime),
               })
 
               req.payload.logger.info(
-                `Scheduled new publication for CompanyChange (ID: ${doc.id}) at ${doc.scheduledPublish}`,
+                `Scheduled new publication for CompanyChange (ID: ${doc.id}) at ${doc.displayDuration.scheduledPublicationDateTime}`,
               )
             }
           } catch (error) {
